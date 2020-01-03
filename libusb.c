@@ -122,6 +122,67 @@ int init(libusb_device_handle *dev, int channel)
         printf("\n");
     }
 
+    printf("set power\n");
+    // set power
+    int power = 0x04;
+    int retries = 10;
+    ret = libusb_control_transfer(dev, DIR_OUT, SET_POWER, 0x00, power, NULL, 0, TIMEOUT);
+
+    // get power until it is the same as configured in set_power
+    int i;
+    for (i = 0; i < retries; i++)
+    {
+        uint8_t data;
+        ret = libusb_control_transfer(dev, 0xC0, GET_POWER, 0x00, 0x00, &data, 1, TIMEOUT);
+        if (ret < 0)
+        {
+            return ret;
+        }
+        if (data == power)
+        {
+           printf("power set\n"); 
+        }
+    }
+    
+    printf("set channel\n");
+    uint8_t data;
+    data = channel & 0xFF;
+    ret = libusb_control_transfer(dev, DIR_OUT, SET_CHAN, 0x00, 0x00, &data, 1, TIMEOUT);
+    if (ret < 0)
+    {
+        printf("setting channel (LSB) failed!\n");
+        return ret;
+    }
+    data = (channel >> 8) & 0xFF;
+    ret = libusb_control_transfer(dev, DIR_OUT, SET_CHAN, 0x00, 0x01, &data, 1, TIMEOUT);
+    if (ret < 0)
+    {
+        printf("setting channel (LSB) failed!\n");
+        return ret;
+    }
+    printf("channel set\n"); 
+
+    printf("start capture?\n");
+    ret = libusb_control_transfer(dev, DIR_OUT, SET_START, 0x00, 0x00, NULL, 0, TIMEOUT);
+
+    printf("read from usb\n");
+    u_char usbdata[1024];
+    int ctr=0;
+    int xfer=0;
+    while(1)
+    {
+	ret = libusb_bulk_transfer(dev, DATA_EP_CC2540, usbdata, sizeof(usbdata), &xfer, TIMEOUT);
+	printf("chan:%d ret:%d xfer:%d\n",channel,ret,xfer);
+	for (int i = 0; i < xfer; i++)
+        {
+            printf(" %02X", usbdata[i]);
+        }
+	printf("\n");
+	ctr++;
+	if(ctr == 10)
+		break;
+    }
+
     return rc;
 }
 
@@ -133,7 +194,7 @@ int main(int argc, char *argv[])
 
     find_devices();
 
-    init(usbdev.dev,11);
+    init(usbdev.dev,37);
 
     libusb_exit(maincontext);
     return 0;
