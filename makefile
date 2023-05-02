@@ -1,10 +1,10 @@
 #makefile
 #needs libusb-1.0
 
-all: libusttest 
+all: libusbtest 
 
-libusttest:
-	g++ libusb.c -o libusttest -lusb-1.0 -lpcap
+libusbtest:
+	g++ libusb.c -o libusbtest -lusb-1.0
 
 clean:
-	rm -f libusttest 
+	rm -f libusbtest libusb
